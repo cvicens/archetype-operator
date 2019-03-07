@@ -4,4 +4,5 @@ metadata:
   name: example-repository
 spec:
   # Add fields here
-  size: 3
+  gitUrl: "https://github.com/cvicens/archetype-operator-customer-service.git"
+  gitRef: "master"

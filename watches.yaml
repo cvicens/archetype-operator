@@ -3,3 +3,5 @@
   group: cloudnative.redhat.com
   kind: Repository
   role: /opt/ansible/roles/repository
+  #role: /Users/cvicensa/Projects/openshift/paradigma-cloud-native-archetype/archetype-operator/roles/repository
+

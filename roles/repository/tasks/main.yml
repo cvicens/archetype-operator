@@ -1,2 +1,61 @@
 ---
 # tasks file for repository
+
+- name: Get a list of all service objects
+  k8s_facts:
+    api_version: v1
+    kind: ConfigMap
+    namespace: '{{ meta.namespace }}'
+  register: configmap_list
+
+- debug: msg="{{ configmap_list }}"
+
+- shell: oc get configmap
+  register: result
+
+- name: Debugging
+  debug: msg="{{ result.stdout_lines }}"
+#    var: result
+#    verbosity: "2"
+
+- name: Checking out config folder
+  git:
+    repo: '{{ git_url }}'
+    dest: ./tmp
+    version: '{{ git_ref }}'
+
+- name: Find config-map files
+  find:
+    paths: ./tmp/k8s
+    patterns: '*-configmap.yaml'
+  register: configmap_files
+
+- debug: msg="{{ configmap_files.files }}"
+
+- debug:
+    msg: "{{ item.path }}"
+  with_items: "{{ configmap_files.files }}"
+  when: configmap_files.files is defined
+
+- name: Managing configuration in namespace {{ meta.namespace }}
+  k8s:
+    state: "{{ state }}"
+    namespace: '{{ meta.namespace }}'
+    src: ./{{ item.path }}
+  with_items: "{{ configmap_files.files }}"
+  when: configmap_files.files is defined
+
+#- name: Managing configuration in namespace {{ meta.namespace }}
+#  k8s:
+#    definition:
+#      state: "{{ state }}"
+#      kind: ConfigMap
+#      apiVersion: v1
+#      data:
+#        gitUrl: '{{ git_url }}'
+#        gitRef: '{{ git_ref }}'
+#      metadata:
+#        name: '{{ meta.name }}-configmap'
+#        namespace: '{{ meta.namespace }}'
+#  with_items: "{{ configmap_files.files }}"
+#  when: configmap_files.files is defined
