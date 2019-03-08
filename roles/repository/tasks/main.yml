@@ -1,49 +1,103 @@
 ---
 # tasks file for repository
 
-- name: Get a list of all service objects
+- name: Get a list of all ConfigMap objects in namespace {{ meta.namespace }}
   k8s_facts:
     api_version: v1
     kind: ConfigMap
     namespace: '{{ meta.namespace }}'
   register: configmap_list
 
-- debug: msg="{{ configmap_list }}"
+- name: configmap_list
+  debug: 
+    msg: "{{ configmap_list }}"
 
-- shell: oc get configmap
-  register: result
+- name: List of configmap names in namespace {{ meta.namespace }}
+  set_fact:
+    #configmap_names_list: "{{ configmap_list | json_query('resources[?data].metadata.name') }}"
+    #configmap_names_list: "{{ configmap_list | json_query('resources[*].metadata.name') }}"
+    configmap_names_list: "{{ configmap_list | json_query('resources[?metadata.name!=`archetype-operator-lock`].metadata.name') }}"
 
-- name: Debugging
-  debug: msg="{{ result.stdout_lines }}"
-#    var: result
-#    verbosity: "2"
+- name: configmap_names_list
+  debug: 
+    msg: "{{ configmap_names_list }}"
 
-- name: Checking out config folder
+#- shell: oc get configmap
+#  register: result
+#
+#- name: Debugging
+#  debug: msg="{{ result.stdout_lines }}"
+
+- name: Checking out config folder from {{ git_url }}/{{ git_ref }}
   git:
     repo: '{{ git_url }}'
     dest: ./tmp
     version: '{{ git_ref }}'
 
-- name: Find config-map files
+- name: Find '*-configmap' files in ./k8s folder
   find:
     paths: ./tmp/k8s
     patterns: '*-configmap.yaml'
-  register: configmap_files
+  register: git_configmap_file_list
 
-- debug: msg="{{ configmap_files.files }}"
+- name: List of configmap file paths
+  set_fact:
+    git_configmap_file_paths: "{{ git_configmap_file_list | json_query('files[*].path') }}"
 
-- debug:
-    msg: "{{ item.path }}"
-  with_items: "{{ configmap_files.files }}"
-  when: configmap_files.files is defined
+- name: git_configmap_file_paths
+  debug: 
+    msg: "{{ git_configmap_file_paths }}"
 
-- name: Managing configuration in namespace {{ meta.namespace }}
+- name: Get configmap content from git files
+  set_fact:
+    git_configmap_list: "{{ git_configmap_list | default([]) + [ item | from_yaml ] }}"
+  with_file: "{{ git_configmap_file_paths }}"
+
+- name: git_configmap_list
+  debug:
+    msg: "{{ git_configmap_list }}"
+
+- name: List of configmap names from git
+  set_fact:
+    git_configmap_names_list: "{{ git_configmap_list | json_query('[*].metadata.name') }}"
+
+- name: git_configmap_names_list
+  debug: 
+    msg: "{{ git_configmap_names_list }}"
+
+- name: List of configmap names to delete
+  set_fact:
+    configmap_names_to_delete_list: "{{ configmap_names_list | difference(git_configmap_names_list) }}"
+
+- name: configmap_names_to_delete_list
+  debug: 
+    msg: "{{ configmap_names_to_delete_list }}"
+
+- name: Create configmaps from git in namespace {{ meta.namespace }}
   k8s:
     state: "{{ state }}"
     namespace: '{{ meta.namespace }}'
-    src: ./{{ item.path }}
-  with_items: "{{ configmap_files.files }}"
-  when: configmap_files.files is defined
+    definition: "{{ item }}"
+  with_items: "{{ git_configmap_list }}"
+  when: git_configmap_list is defined
+
+- name: Delete 'to-be-deleted' configmaps from namespace {{ meta.namespace }}
+  k8s:
+    state: absent
+    api_version: v1
+    kind: ConfigMap
+    namespace: '{{ meta.namespace }}'
+    name: "{{ item }}"
+  with_items: "{{ configmap_names_to_delete_list }}"
+  when: configmap_names_to_delete_list is defined
+
+#- name: Managing configuration in namespace {{ meta.namespace }}
+#  k8s:
+#    state: "{{ state }}"
+#    namespace: '{{ meta.namespace }}'
+#    src: ./{{ item.path }}
+#  with_items: "{{ git_configmap_file_list.files }}"
+#  when: git_configmap_file_list.files is defined
 
 #- name: Managing configuration in namespace {{ meta.namespace }}
 #  k8s:
@@ -57,5 +111,5 @@
 #      metadata:
 #        name: '{{ meta.name }}-configmap'
 #        namespace: '{{ meta.namespace }}'
-#  with_items: "{{ configmap_files.files }}"
-#  when: configmap_files.files is defined
+#  with_items: "{{ git_configmap_file_list.files }}"
+#  when: git_configmap_file_list.files is defined

@@ -1,7 +1,7 @@
 FROM quay.io/operator-framework/ansible-operator:v0.5.0
 
 USER root
-RUN yum -y install git
+RUN yum -y install git && pip install jmespath
 
 ENV OC_BIN='oc-3.11.82-linux.tar.gz'
 COPY ./bin/${OC_BIN} /tmp
