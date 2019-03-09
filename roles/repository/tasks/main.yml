@@ -78,6 +78,7 @@
     state: "{{ state }}"
     namespace: '{{ meta.namespace }}'
     definition: "{{ item }}"
+    force: yes
   with_items: "{{ git_configmap_list }}"
   when: git_configmap_list is defined
 
