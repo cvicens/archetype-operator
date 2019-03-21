@@ -1,4 +1,5 @@
-# GitOps-like kubernetes ansible operator as the gurdian of your ConfigMaps
+# Could a Kubernetes Operator become the guardian of your ConfigMaps. A GitOps approach.
+
 All this started as a by-product of a meeting I had recently with a customer   and also from a conversation I had with a partner. Both events triggered the need of managing configuration in a kubernetes namespace, and because I have been invo...
 
 Just to give you a bit of context...
