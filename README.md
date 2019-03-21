@@ -89,7 +89,7 @@ Some interesting elements I'd like to hightlight in folder `./deploy`.
 * `service_account.yaml` definition of the service account our pod will use
 * `role.yaml` kubernetes role definition granting basic permissions over typical kubernetes objects, we won't change anything here because this role already provides the permissions needed regarding ConfigMaps
 * `role_binding.yaml` links role and service account
-* `crds` this folder contain the definition of the Custom Resource Definition (CRD) and an example of Custom Resource (CR). Take CR as an instance of a CRD.
+* `crds` this folder contain the definition of the Custom Resource Definition (CRD) and an example of Custom Resource (CR). Take a CR as an instance of a CRD.
 
 ## Create a namespace to deploy our operator
 
@@ -105,19 +105,29 @@ $ kubectl new-namespace archetype-master
 
 ## Deploying basic artifacts
 
-Prior to running our operator, we need to deploy the elements in folder `./deploy`.
+Prior to running our operator, we need to deploy some basic elements in folder `./deploy`.
 
 > **WARNING:** In order to be able to `apply` both `deploy/role.yaml` and `deploy/crds/cloudnative_v1alpha1_repository_crd.yaml` you need to be cluster admin.
 > The next command shows how to become cluster admin in an Openshift cluster
 > `$ oc adm policy add-cluster-role-to-user cluster-admin <user>`
 
+Be sure you are in the project folder...
+
 ```
 $ cd archetype-operator
+```
 
+Let's deploy the definition of our Custom Resource or CRD.
+
+```
 $ oc apply -f deploy/crds/cloudnative_v1alpha1_repository_crd.yaml
 or
 $ kubectl apply -f deploy/crds/cloudnative_v1alpha1_repository_crd.yaml
+```
 
+Let's deploy the role we're going to grant to the operator service account and the service account itself.
+
+```
 $ oc apply -n archetype-master -f deploy/role.yaml 
 or
 $ kubectl apply -n archetype-master -f deploy/role.yaml 
@@ -125,7 +135,11 @@ $ kubectl apply -n archetype-master -f deploy/role.yaml
 $ oc apply -n archetype-master -f deploy/service_account.yaml 
 or
 $ kubectl apply -n archetype-master -f deploy/service_account.yaml 
+```
 
+Finally let's link service account with role through the role binding.
+
+```
 $ oc apply -n archetype-master -f deploy/role_binding.yaml 
 or
 $ kubectl apply -n archetype-master -f deploy/role_binding.yaml 
@@ -301,9 +315,6 @@ Finally let's push the image to the registry.
 ```
 $ docker push quay.io/<userid>/archetype-operator
 ```
-
->>>>> operator-sdk build archetype-operator && docker tag archetype-operator quay.io/cvicensa/archetype-operator && docker push quay.io/cvicensa/archetype-operator
-
 
 ## Modifying the sample Custom Resource definition
 
