@@ -1,6 +1,11 @@
 -
-  name: Create a new file named names in the current directory
+  name: Execute your roles
   hosts: localhost
   roles:
-  -
-    repository
+  - role: repository
+    vars:
+      meta:
+        name: example-repository-2
+        namespace: archetype-master
+        git_url: "https://github.com/cvicens/archetype-operator-customer-service.git"
+        git_ref: master

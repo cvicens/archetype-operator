@@ -16,7 +16,7 @@ spec:
       containers:
         - name: archetype-operator
           # Replace this with the built image name
-          image: "docker.io/cvicens/archetype-operator:latest"
+          image: "quay.io/cvicensa/archetype-operator:latest"
           imagePullPolicy: "Always"
           env:
             - name: WATCH_NAMESPACE
