@@ -3,14 +3,14 @@ All this started as a by-product of a meeting I had recently with a customer   a
 
 Just to give you a bit of context...
 
-The meeting with the customer was focused on new Openshift features around Ops, and most of the time was spent on [Kubernetes Operators](), why, how, etc. In fact it was conducted as a lab where we used the [Prometheus Operator](), I'm referring to [this short lab](). What is curious is that the relevant outcome of the meeting came from a side conversation about their CI/CD pipelines and specifically about configuration management... at that moment I thought what if we use an operator to ensure that configuration is as defined in the git repository.
+The meeting with the customer was focused on new Openshift features around Ops, and most of the time was spent on [Kubernetes Operators](https://operatorhub.io/what-is-an-operator), why, how, etc. In fact it was conducted as a lab where we used the [Prometheus Operator](https://github.com/coreos/prometheus-operator), I'm referring to [this short lab](https://medium.com/devopslinks/using-the-operator-lifecycle-manager-to-deploy-prometheus-on-openshift-cd2f3abb3511). What is curious is that the relevant outcome of the meeting came from a side conversation about their CI/CD pipelines and specifically about configuration management... at that moment I thought what if we use an operator to ensure that configuration is as defined in the git repository.
 
-The conversation with the partner happened around the same week... again a side conversation (how important is wandering aroung every now and then ;-) this time it was about creating some kind of archetype to speed up the first moves of a new project forced me to develop the operator. The key concept of the side conversation was [GitOps](), a new concept for me that fitted perfectly with the previous conversation about configuration management.
+The conversation with the partner happened around the same week... again a side conversation (how important is wandering aroung every now and then ;-) this time it was about creating some kind of archetype to speed up the first moves of a new project forced me to develop the operator. The key concept of the side conversation was [GitOps](https://www.weave.works/technologies/gitops/), a new concept for me that fitted perfectly with the previous conversation about configuration management.
 
 So I decided to prove that this all made sense... and here's the result.
 
 ## TL;DR
-I have developed a [Kubernetes Operator]() that ensures that ConfigMaps in a namespace are exactly as defined in the correspending Git repo and branch. By corresponding I mean as defined in a [Custom Resource]() like the next one.
+I have developed a [Kubernetes Operator](https://operatorhub.io/what-is-an-operator) that ensures that ConfigMaps in a namespace are exactly as defined in the correspending Git repo and branch. By corresponding I mean as defined in a [Custom Resource](https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/) like the next one.
 
 **Sample Custom Resource**
 
@@ -31,14 +31,21 @@ Keep reading to see how you can quickly create your own GitOps-inspired operator
 
 ## Prerequisites
 
-Install the operator SDK... 
-Blah....
+You need to install the Operator SDK, instructions [here](https://github.com/operator-framework/operator-sdk), section 'Prerequisites'
 
-Because we're going to use ansible to develop our operator you also need this...
+- [dep](https://golang.github.io/dep/docs/installation.html) version v0.5.0+.
+- [git](https://git-scm.com/downloads)
+- [go](https://golang.org/dl/) version v1.10+.
+- [docker](https://docs.docker.com/install/) version 17.03+.
+- [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/) version v1.11.3+ or [oc](https://docs.okd.io/latest/cli_reference/get_started_cli.html#installing-the-cli) version 3.11+
+- Access to a Kubernetes v1.11.3+ or Openshift 3.11+ cluster
 
-Additionally and because of a ... virtual python env....
+Because we're going to use Ansible and the k8s module to develop our operator you'll also need, Ansible and the [Openshift Python Restclient](https://github.com/openshift/openshift-restclient-python)
 
-> **IMPORTANT:** To run some of the tasks in this document you should be **cluster-admin** so maybe using [minishift]() will be easier that convincing some one with super powers let you join their club ;-)
+- pip install ansible (you may need to run this with sudo)
+- pip install openshift 
+
+> **IMPORTANT:** To run some of the tasks in this document you should be **cluster-admin** so maybe using [minishift](https://www.okd.io/minishift/) will be easier than convincing some one with super powers let you join their club ;-)
 
 ## Before we get our hands dirty. What's an Operator?
 
@@ -92,22 +99,36 @@ In order to deploy our operator we need an Openshift project, so let's create on
 
 ```
 $ oc new-project archetype-master
+or
+$ kubectl new-namespace archetype-master
 ```
 
 ## Deploying basic artifacts
 
 Prior to running our operator, we need to deploy the elements in folder `./deploy`.
 
-> **WARNING:** In order to be able to `apply` both `deploy/role.yaml` and `deploy/crds/cloudnative_v1alpha1_repository_crd.yaml` you need to be cluster admin. 
-> The next command shows how to become cluster admin.
+> **WARNING:** In order to be able to `apply` both `deploy/role.yaml` and `deploy/crds/cloudnative_v1alpha1_repository_crd.yaml` you need to be cluster admin.
+> The next command shows how to become cluster admin in an Openshift cluster
 > `$ oc adm policy add-cluster-role-to-user cluster-admin <user>`
 
 ```
-cd archetype-operator
-oc apply -f deploy/crds/cloudnative_v1alpha1_repository_crd.yaml
-oc apply -n archetype-master -f deploy/role.yaml 
-oc apply -n archetype-master -f deploy/service_account.yaml 
-oc apply -n archetype-master -f deploy/role_binding.yaml 
+$ cd archetype-operator
+
+$ oc apply -f deploy/crds/cloudnative_v1alpha1_repository_crd.yaml
+or
+$ kubectl apply -f deploy/crds/cloudnative_v1alpha1_repository_crd.yaml
+
+$ oc apply -n archetype-master -f deploy/role.yaml 
+or
+$ kubectl apply -n archetype-master -f deploy/role.yaml 
+
+$ oc apply -n archetype-master -f deploy/service_account.yaml 
+or
+$ kubectl apply -n archetype-master -f deploy/service_account.yaml 
+
+$ oc apply -n archetype-master -f deploy/role_binding.yaml 
+or
+$ kubectl apply -n archetype-master -f deploy/role_binding.yaml 
 ```
 
 > *Maybe you've noticed we haven't applied `./deploy/cloudnative_v1alpha1_repository_cr.yaml`. This is becase we haven't decided yet which properties should form the spec of our Custom Resource, we'll do that later.*
@@ -364,6 +385,8 @@ As I have aleady explained... operator == pod so we need a Deployment descriptor
 
 ```
 $ oc apply -f ./deploy/operator.yaml
+or
+$ kubectl apply -f ./deploy/operator.yaml
 ```
 
 ## Let's deploy our Custom Resource
@@ -373,12 +396,19 @@ Let's create our Custom Resource in the same namespace where we have deployed al
 ```
 $ oc apply -f ./deploy/crds/cloudnative_v1alpha1_repository_cr.yaml -n archetype-master
 repository.cloudnative.redhat.com/example-repository created
+or
+$ kubectl apply -f ./deploy/crds/cloudnative_v1alpha1_repository_cr.yaml -n archetype-master
+repository.cloudnative.redhat.com/example-repository created
 ```
 
 Now let's have a look to the logs of our operator, but first let's locate our pod.
 
 ```
 $ oc get pod
+NAME                                 READY     STATUS    RESTARTS   AGE
+archetype-operator-f6b778d55-w5f6m   1/1       Running   0          3m
+or
+$ kubectl get pod
 NAME                                 READY     STATUS    RESTARTS   AGE
 archetype-operator-f6b778d55-w5f6m   1/1       Running   0          3m
 ```
