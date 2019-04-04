@@ -1,3 +1,5 @@
+<div>Icons made by <a href="https://www.freepik.com/" title="Freepik">Freepik</a> from <a href="https://www.flaticon.com/" 			    title="Flaticon">www.flaticon.com</a> is licensed by <a href="http://creativecommons.org/licenses/by/3.0/" 			    title="Creative Commons BY 3.0" target="_blank">CC 3.0 BY</a></div>
+
 # Could a Kubernetes Operator become the guardian of your ConfigMaps. A GitOps approach.
 
 All this started as a by-product of a meeting I had recently with a customer   and also from a conversation I had with a partner. Both events triggered the need of managing configuration in a kubernetes namespace, and because I have been invo...
@@ -6,7 +8,7 @@ Just to give you a bit of context...
 
 The meeting with the customer was focused on new Openshift features around Ops, and most of the time was spent on [Kubernetes Operators](https://operatorhub.io/what-is-an-operator), why, how, etc. In fact it was conducted as a lab where we used the [Prometheus Operator](https://github.com/coreos/prometheus-operator), I'm referring to [this short lab](https://medium.com/devopslinks/using-the-operator-lifecycle-manager-to-deploy-prometheus-on-openshift-cd2f3abb3511). What is curious is that the relevant outcome of the meeting came from a side conversation about their CI/CD pipelines and specifically about configuration management... at that moment I thought what if we use an operator to ensure that configuration is as defined in the git repository.
 
-The conversation with the partner happened around the same week... again a side conversation (how important is wandering aroung every now and then ;-) this time it was about creating some kind of archetype to speed up the first moves of a new project forced me to develop the operator. The key concept of the side conversation was [GitOps](https://www.weave.works/technologies/gitops/), a new concept for me that fitted perfectly with the previous conversation about configuration management.
+The conversation with the partner happened around the same week... again a side conversation (how important is wandering around every now and then ;-) this time it was about creating some kind of archetype to speed up the first moves of a new project forced me to develop the operator. The key concept of the side conversation was [GitOps](https://www.weave.works/technologies/gitops/), a new concept for me that fitted perfectly with the previous conversation about configuration management.
 
 So I decided to prove that this all made sense... and here's the result.
 
@@ -34,10 +36,10 @@ Keep reading to see how you can quickly create your own GitOps-inspired operator
 
 You need to install the Operator SDK, instructions [here](https://github.com/operator-framework/operator-sdk), section 'Prerequisites'
 
-- [dep](https://golang.github.io/dep/docs/installation.html) version v0.5.0+.
+- [dep](https://golang.github.io/dep/docs/installation.html) version v0.5.0+
 - [git](https://git-scm.com/downloads)
-- [go](https://golang.org/dl/) version v1.10+.
-- [docker](https://docs.docker.com/install/) version 17.03+.
+- [go](https://golang.org/dl/) version v1.10+
+- [docker](https://docs.docker.com/install/) version 17.03+
 - [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/) version v1.11.3+ or [oc](https://docs.okd.io/latest/cli_reference/get_started_cli.html#installing-the-cli) version 3.11+
 - Access to a Kubernetes v1.11.3+ or Openshift 3.11+ cluster
 
@@ -46,24 +48,19 @@ Because we're going to use Ansible and the k8s module to develop our operator yo
 - pip install ansible (you may need to run this with sudo)
 - pip install openshift 
 
-> **IMPORTANT:** To run some of the tasks in this document you should be **cluster-admin** so maybe using [minishift](https://www.okd.io/minishift/) will be easier than convincing some one with super powers let you join their club ;-)
+> **IMPORTANT:** To run some of the tasks in this document you should be **cluster-admin** so maybe using [minishift](https://www.okd.io/minishift/) will be easier than convincing someone with super powers let you join their club ;-)
 
 ## Before we get our hands dirty. What's an Operator?
 
 Because... I love getting my hands dirty (with code usually) but I want to know what I'm going to get them dirty with.
 
-*An operator is, at its lowest level, a pod that will watch changes to Custom Resources that define a desired state and execute taks accordingly to ensure that the actual state matches the defined state.*
+*An operator is, at its lowest level, a pod that will watch changes to Custom Resources that define a desired state and execute tasks accordingly to ensure that the actual state matches the defined state.*
 
 When a pod is created it specifies a service account (or uses the default service account) and is allowed to use that service account’s API credentials and referenced secrets, find more information [here](https://docs.openshift.com/container-platform/3.11/dev_guide/service_accounts.html#using-a-service-accounts-credentials-inside-a-container)
 
 Ok, now we can get our hands dirty.
 
 ## Creating the scaffold project
-
-*An operator is, at its lowest level, a pod that will watch changes to Custom Resources that define a desired state and execute taks accordingly to ensure that the actual state matches the defined state.*
-
-> When a pod is created it specifies a service account (or uses the default service account) and is allowed to use that service account’s API credentials and referenced secrets, more information [here](https://docs.openshift.com/container-platform/3.11/dev_guide/service_accounts.html#using-a-service-accounts-credentials-inside-a-container)
-
 Now let's use the Operator SDK it to create a project for our operator as follows.
 
 > Our operator's scope (the default) is limited to a namespace, hence it is a `namespace-scoped operator`, and will watch and manage resources in a single namespace. Add `--cluster-scoped ` if the scope of your operator should be cluster-wide.
@@ -84,7 +81,7 @@ The next table shows the different artifacts generated in our new project folder
 | build/ | Contains scripts that the operator-sdk uses for build and initialization. |
 | watches.yaml | Contains Group, Version, Kind, and Ansible invocation method. |
 
-Some interesting elements I'd like to hightlight in folder `./deploy`.
+Some interesting elements I'd like to highlight in folder `./deploy`.
 
 * `operator.yaml` minimal kubernetes deployment descriptor, it needs to be modified be usable, little but important changes.
 * `service_account.yaml` definition of the service account our pod will use
@@ -150,7 +147,7 @@ $ kubectl apply -n archetype-master -f deploy/role_binding.yaml
 
 ## Adding actual code to our ansible role
 
-Please go to folder `./roles/repository` and open `tasks/main.yml`, then subtitute it's contents with this.
+Please go to folder `./roles/repository` and open `tasks/main.yml`, then substitute it's contents with this.
 
 ```yaml
 ---
@@ -254,7 +251,7 @@ What this code does is:
 
 As you have seen our Ansible role clones a git repo... so it needs git binary installed... so we need to install it in the image of our container. I almost forgot, we also need a python package 'jmespath' for the json_query filters.
 
-To do this please open `./build/Dockerfile` compare it's contents and subtitute them with this.
+To do this please open `./build/Dockerfile` compare it's contents and substitute them with this.
 
 ```
 FROM quay.io/operator-framework/ansible-operator:v0.5.0
@@ -321,7 +318,7 @@ $ docker push quay.io/<userid>/archetype-operator
 
 As I pointed out before, we haven't applied `./deploy/cloudnative_v1alpha1_repository_cr.yaml` yet mostly because we haven't added any meaningful properties ;-) let's fix that.
 
-> *Remember that we create CRs to define a desired state... so we need properties to define it*
+> *Remember that we create CRs to define a desired state... so we need properties to define that state*
 
 In our code we're expecting some variables: {{ state }}, {{ git_url }} and {{ git_ref }}.
 
@@ -393,7 +390,7 @@ Now we can deploy our operator... excited?
 
 ## Deploying our operator...
 
-As I have aleady explained... operator == pod so we need a Deployment descriptor to actually deploy it and apply it in our namespace.
+As I have already explained... **operator == pod** so we need a Deployment descriptor to actually deploy it and apply it in our namespace.
 
 ```
 $ oc apply -f ./deploy/operator.yaml
@@ -469,7 +466,7 @@ Let me remind you that an operator runs as a pod (in a container) where it invok
 
 Next command shows that in this case the name of the service account is set to `archetype-operator`.
 
-> Note: along with the name of the service account a token is injected to a certain mount point `/var/run/secrets/kubernetes.io/serviceaccount/token`
+> **Note:** along with the name of the service account a token is injected to a certain mount point `/var/run/secrets/kubernetes.io/serviceaccount/token`
 
 ```
 $ oc get deployment archetype-operator -o yaml -n archetype-master
@@ -529,7 +526,7 @@ Using project "archetype-master".
 
 I'm using macOS and I found that in order to meet the requirements to run my role I needed to update Python to a level macOS didn't like... so I googled my problem and hit [this](https://sourabhbajaj.com/mac-setup/Python/virtualenv.html) gem.
 
-So the idea is to create a virtual python enviroment... bear with me and run this commands inside the project folder.
+So the idea is to create a virtual python environment... bear with me and run this commands inside the project folder.
 
 ```
 $ sudo pip install virtualenv
@@ -562,7 +559,7 @@ Obviously no, we need a Playbook to run our role and check if everything is alri
       git_ref: master
 ```
 
-As you can see we have added a `vars` section to our role, this is to feed the role as the operatore itself does when running in the pod. Now let's test it!
+As you can see we have added a `vars` section to our role, this is to feed the role as the operator itself does when running in the pod. Now let's test it!
 
 ```
 $ ansible-playbook -i myhosts playbook.yaml
